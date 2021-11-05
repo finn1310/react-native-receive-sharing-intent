@@ -125,35 +125,15 @@ public class ReceiveSharingIntentHelper {
       file.putString("mimeType", contentResolver.getType(contentUri));
       Cursor queryResult = contentResolver.query(contentUri, null, null, null, null);
       queryResult.moveToFirst();
+      String fileSize = getSize(context, contentUri);
       file.putString("fileName", queryResult.getString(queryResult.getColumnIndex(OpenableColumns.DISPLAY_NAME)));
       file.putString("filePath", filePath);
       file.putString("contentUri",contentUri.toString());
       file.putString("text",null);
       file.putString("weblink", null);
       file.putString("subject", subject);
+      file.putString("size", fileSize);
       files.putMap("0",file);
-    }else if(Objects.equals(intent.getAction(), Intent.ACTION_SEND_MULTIPLE)) {
-      ArrayList<Uri> contentUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
-      if (contentUris != null) {
-        int index = 0;
-        for (Uri uri : contentUris) {
-          WritableMap file = new WritableNativeMap();
-          ContentResolver contentResolver = context.getContentResolver();
-          String filePath = FileDirectory.INSTANCE.getAbsolutePath(context, uri);
-          // Based on https://developer.android.com/training/secure-file-sharing/retrieve-info
-          file.putString("mimeType", contentResolver.getType(uri));
-          Cursor queryResult = contentResolver.query(uri, null, null, null, null);
-          queryResult.moveToFirst();
-          file.putString("fileName", queryResult.getString(queryResult.getColumnIndex(OpenableColumns.DISPLAY_NAME)));
-          file.putString("filePath", filePath);
-          file.putString("contentUri",uri.toString());
-          file.putString("text",null);
-          file.putString("weblink", null);
-          file.putString("subject", subject);
-          files.putMap(Integer.toString(index),file);
-          index++;
-        }
-      }
     }
     return  files;
   }
@@ -181,6 +161,25 @@ public class ReceiveSharingIntentHelper {
 
   public String getExtension(String file){
     return file.substring(file.lastIndexOf('.') + 1);
+  }
+
+  public String getSize(Context context, Uri uri) {
+    String fileSize = null;
+    Cursor cursor = context.getContentResolver()
+            .query(uri, null, null, null, null, null);
+    try {
+      if (cursor != null && cursor.moveToFirst()) {
+
+        // get file size
+        int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+        if (!cursor.isNull(sizeIndex)) {
+          fileSize = cursor.getString(sizeIndex);
+        }
+      }
+    } finally {
+      cursor.close();
+    }
+    return fileSize;
   }
 
 }
